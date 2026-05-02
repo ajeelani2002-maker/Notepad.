@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social App</title>
+
+<style>
+:root{
+--bg:#0f172a;
+--card:#1e293b;
+--text:#fff;
+--primary:#3b82f6;
+}
+
+.light{
+--bg:#f1f5f9;
+--card:#ffffff;
+--text:#000;
+}
+
+body{
+margin:0;
+font-family:system-ui;
+background:var(--bg);
+color:var(--text);
+}
+
+.container{
+max-width:500px;
+margin:auto;
+padding:15px;
+}
+
+.card{
+background:var(--card);
+padding:15px;
+border-radius:16px;
+box-shadow:0 4px 20px rgba(0,0,0,0.2);
+margin-bottom:15px;
+}
+
+input,textarea{
+width:100%;
+padding:12px;
+border-radius:10px;
+border:none;
+margin-top:8px;
+background:#111827;
+color:white;
+}
+
+.light input,.light textarea{
+background:#e5e7eb;
+color:black;
+}
+
+button{
+padding:10px 14px;
+border:none;
+border-radius:10px;
+background:var(--primary);
+color:white;
+cursor:pointer;
+margin-top:8px;
+}
+
+.row{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.space{
+justify-content:space-between;
+}
+
+.avatar{
+width:40px;
+height:40px;
+border-radius:50%;
+}
+
+.post-img{
+width:100%;
+border-radius:12px;
+margin-top:10px;
+}
+
+.actions{
+display:flex;
+gap:10px;
+margin-top:10px;
+}
+
+.comment{
+font-size:13px;
+margin-top:5px;
+opacity:0.9;
+}
+
+.hidden{display:none}
+
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
+}
+
+.nav{
+display:flex;
+gap:8px;
+margin-top:10px;
+}
+
+.nav button{
+flex:1;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="auth" class="card">
+<h2>Login / Signup</h2>
+<input id="username" placeholder="Username">
+<input id="password" type="password" placeholder="Password">
+<input id="pic" placeholder="Profile Pic URL">
+<button onclick="signup()">Signup</button>
+<button onclick="login()">Login</button>
+<p id="msg"></p>
+</div>
+
+<div id="app" class="hidden">
+
+<div class="topbar">
+<h3 id="welcome"></h3>
+<div>
+<button onclick="toggleTheme()">🌗</button>
+<button onclick="logout()">🚪</button>
+</div>
+</div>
+
+<div class="card">
+<textarea id="text" placeholder="What's happening?"></textarea>
+<input id="img" placeholder="Image URL">
+<button onclick="post()">Post</button>
+</div>
+
+<div class="nav">
+<button onclick="mode='home';load()">🏠</button>
+<button onclick="mode='explore';load()">🌍</button>
+<button onclick="profile()">👤</button>
+</div>
+
+<div id="feed"></div>
+
+</div>
+
+</div>
+
+<script>
+let currentUser=null;
+let mode="explore";
+
+function getUser(u){return JSON.parse(localStorage.getItem(u));}
+function saveUser(u,d){localStorage.setItem(u,JSON.stringify(d));}
+
+function signup(){
+let u=username.value,p=password.value;
+if(!u||!p)return msg.innerText="Fill all";
+if(localStorage.getItem(u))return msg.innerText="Exists";
+saveUser(u,{password:p,pic:pic.value||"https://via.placeholder.com/40",posts:[],following:[]});
+msg.innerText="Created";
+}
+
+function login(){
+let u=username.value,p=password.value;
+let d=getUser(u);
+if(!d||d.password!==p)return msg.innerText="Wrong";
+currentUser=u;
+auth.classList.add("hidden");
+app.classList.remove("hidden");
+welcome.innerText="@"+u;
+load();
+}
+
+function logout(){
+currentUser=null;
+auth.classList.remove("hidden");
+app.classList.add("hidden");
+}
+
+function post(){
+let t=text.value,i=img.value;
+if(!t&&!i)return;
+let u=getUser(currentUser);
+u.posts.unshift({text:t,img:i,likes:[],comments:[]});
+saveUser(currentUser,u);
+text.value="";img.value="";
+load();
+}
+
+function load(){
+feed.innerHTML="";
+for(let u in localStorage){
+try{
+let d=getUser(u);
+if(!d.posts)continue;
+
+if(mode==="home" && u!==currentUser){
+let me=getUser(currentUser);
+if(!me.following.includes(u))continue;
+}
+
+d.posts.forEach((p,i)=>{
+let liked=p.likes.includes(currentUser);
+
+let div=document.createElement("div");
+div.className="card";
+
+div.innerHTML=`
+<div class="row space">
+<div class="row">
+<img src="${d.pic}" class="avatar">
+<b>${u}</b>
+</div>
+<div>
+<button onclick="follow('${u}')">${getUser(currentUser).following.includes(u)?"Unfollow":"Follow"}</button>
+${u===currentUser?`<button onclick="del(${i})">🗑️</button>`:""}
+</div>
+</div>
+
+<p>${p.text||""}</p>
+${p.img?`<img src="${p.img}" class="post-img">`:""}
+
+<div class="actions">
+<button onclick="like('${u}',${i})">${liked?"💔":"❤️"} ${p.likes.length}</button>
+</div>
+
+<input placeholder="Comment..." onkeydown="if(event.key==='Enter') comment('${u}',${i},this.value)">
+
+${p.comments.map(c=>`<div class="comment">💬 ${c}</div>`).join("")}
+`;
+
+feed.appendChild(div);
+});
+}catch(e){}
+}
+}
+
+function like(u,i){
+let d=getUser(u);
+let arr=d.posts[i].likes;
+if(arr.includes(currentUser)) arr.splice(arr.indexOf(currentUser),1);
+else arr.push(currentUser);
+saveUser(u,d);
+load();
+}
+
+function comment(u,i,t){
+if(!t)return;
+let d=getUser(u);
+d.posts[i].comments.push(t);
+saveUser(u,d);
+load();
+}
+
+function del(i){
+let u=getUser(currentUser);
+u.posts.splice(i,1);
+saveUser(currentUser,u);
+load();
+}
+
+function follow(u){
+if(u===currentUser)return;
+let me=getUser(currentUser);
+if(me.following.includes(u)) me.following.splice(me.following.indexOf(u),1);
+else me.following.push(u);
+saveUser(currentUser,me);
+load();
+}
+
+function profile(){
+feed.innerHTML="";
+let u=getUser(currentUser);
+u.posts.forEach(p=>{
+let div=document.createElement("div");
+div.className="card";
+div.innerHTML=`<p>${p.text}</p>`;
+feed.appendChild(div);
+});
+}
+
+function toggleTheme(){
+document.body.classList.toggle("light");
+}
+</script>
+
+</body>
+</html>
