@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notepad App</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #0f172a;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      padding: 15px;
+      background: #1e293b;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      background: #111827;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    textarea {
+      flex: 1;
+      width: 100%;
+      padding: 15px;
+      border: none;
+      outline: none;
+      resize: none;
+      font-size: 16px;
+      background: #0b1220;
+      color: #e2e8f0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 8px;
+      background: #1e293b;
+      font-size: 12px;
+    }
+
+    @media (max-width: 600px) {
+      button {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>📝 Notepad</header>
+
+  <div class="toolbar">
+    <button onclick="newFile()">New</button>
+    <button onclick="saveFile()">Download TXT</button>
+    <button onclick="loadFile()">Open</button>
+    <button onclick="clearText()">Clear</button>
+    <button onclick="copyText()">Copy</button>
+  </div>
+
+  <textarea id="editor" placeholder="Start writing here..."></textarea>
+
+  <footer>Simple Notepad App (HTML + JS)</footer>
+
+  <input type="file" id="fileInput" style="display:none" onchange="handleFile(event)" />
+
+  <script>
+    const editor = document.getElementById("editor");
+
+    function newFile() {
+      if (confirm("Create new file? Unsaved work will be lost.")) {
+        editor.value = "";
+      }
+    }
+
+    function saveFile() {
+      const blob = new Blob([editor.value], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "notepad.txt";
+      a.click();
+    }
+
+    function loadFile() {
+      document.getElementById("fileInput").click();
+    }
+
+    function handleFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        editor.value = e.target.result;
+      };
+      reader.readAsText(file);
+    }
+
+    function clearText() {
+      editor.value = "";
+    }
+
+    function copyText() {
+      editor.select();
+      document.execCommand("copy");
+      alert("Copied to clipboard!");
+    }
+
+    // Auto-save
+    editor.value = localStorage.getItem("notepad") || "";
+    editor.addEventListener("input", () => {
+      localStorage.setItem("notepad", editor.value);
+    });
+  </script>
+
+</body>
+  </html>
